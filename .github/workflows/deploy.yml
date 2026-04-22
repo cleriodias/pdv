@@ -23,7 +23,8 @@ jobs:
           submodules: recursive
 
       - name: Show deployment target
-        run: echo "Deploy target: $AZURE_WEBAPP_NAME"
+        run: |
+          echo "Deploy target: $AZURE_WEBAPP_NAME"
 
       - name: Validate publish profile
         env:
