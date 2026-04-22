@@ -7,129 +7,36 @@ on:
   workflow_dispatch:
 
 permissions:
-  id-token: write
   contents: read
 
 env:
-  AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
   AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
-  AZURE_APP_SERVICE_PLAN_ID: ${{ vars.AZURE_APP_SERVICE_PLAN_ID }}
-  AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: 'recursive'
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          submodules: recursive
 
       - name: Validate deployment target
         run: |
-          if [ -z "$AZURE_RESOURCE_GROUP" ] || [ -z "$AZURE_WEBAPP_NAME" ] || [ -z "$AZURE_APP_SERVICE_PLAN_ID" ]; then
-            echo "Configure as repository variables AZURE_RESOURCE_GROUP, AZURE_WEBAPP_NAME e AZURE_APP_SERVICE_PLAN_ID para o novo projeto."
+          if [ -z "$AZURE_WEBAPP_NAME" ]; then
+            echo "Configure a repository variable AZURE_WEBAPP_NAME com o nome do novo Web App."
             exit 1
           fi
 
-      - name: Provision App Service (Bicep)
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        run: |
-          az deployment group create \
-            --resource-group "$AZURE_RESOURCE_GROUP" \
-            --template-file infra/main.bicep \
-            --parameters appName="$AZURE_WEBAPP_NAME" \
-                         location="${AZURE_LOCATION:-Brazil South}" \
-                         appServicePlanId="$AZURE_APP_SERVICE_PLAN_ID"
-
-      - name: Enable App Service logging
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        run: |
-          az webapp log config \
-            --resource-group "$AZURE_RESOURCE_GROUP" \
-            --name "$AZURE_WEBAPP_NAME" \
-            --application-logging filesystem \
-            --web-server-logging filesystem \
-            --detailed-error-messages true \
-            --failed-request-tracing true
-
-      - name: Configure App Service environment
-        if: ${{ github.event_name == 'workflow_dispatch' }}
+      - name: Validate publish profile
         env:
-          APP_KEY: ${{ secrets.LARAVEL_APP_KEY }}
-          APP_URL: ${{ secrets.APP_URL }}
-          DB_CONNECTION: ${{ secrets.DB_CONNECTION }}
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          DB_DATABASE: ${{ secrets.DB_DATABASE }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          AZURE_WEBAPP_PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
         run: |
-          if [ -z "$APP_KEY" ]; then
-            echo "Secret LARAVEL_APP_KEY nao configurada."
+          if [ -z "$AZURE_WEBAPP_PUBLISH_PROFILE" ]; then
+            echo "Configure o secret AZURE_WEBAPP_PUBLISH_PROFILE com o Publish Profile do novo Web App."
             exit 1
           fi
-          if [ -z "$DB_CONNECTION" ] || [ -z "$DB_HOST" ] || [ -z "$DB_DATABASE" ] || [ -z "$DB_USERNAME" ]; then
-            echo "Secrets de banco incompletas (DB_CONNECTION, DB_HOST, DB_DATABASE, DB_USERNAME)."
-            exit 1
-          fi
-          if [ -z "$APP_URL" ]; then
-            APP_URL="https://${AZURE_WEBAPP_NAME}.azurewebsites.net"
-          fi
-          if [ -z "$DB_PORT" ]; then
-            DB_PORT="3306"
-          fi
-          az webapp config appsettings set \
-            --resource-group "$AZURE_RESOURCE_GROUP" \
-            --name "$AZURE_WEBAPP_NAME" \
-            --settings \
-              APP_ENV=production \
-              APP_DEBUG=false \
-              APP_URL="$APP_URL" \
-              LOG_CHANNEL=single \
-              LOG_LEVEL=debug \
-              SESSION_DRIVER=file \
-              CACHE_STORE=file \
-              QUEUE_CONNECTION=sync \
-              APP_STORAGE="/home/site/storage" \
-              APP_KEY="$APP_KEY" \
-              DB_CONNECTION="$DB_CONNECTION" \
-              DB_HOST="$DB_HOST" \
-              DB_PORT="$DB_PORT" \
-              DB_DATABASE="$DB_DATABASE" \
-              DB_USERNAME="$DB_USERNAME" \
-              DB_PASSWORD="$DB_PASSWORD" \
-            --output none
-
-      - name: Configurar Nginx (rewrite Laravel)
-        run: |
-          az webapp config set \
-            --resource-group "$AZURE_RESOURCE_GROUP" \
-            --name "$AZURE_WEBAPP_NAME" \
-            --startup-file "bash /home/site/wwwroot/start.sh"
-
-          az webapp config appsettings set \
-            --resource-group "$AZURE_RESOURCE_GROUP" \
-            --name "$AZURE_WEBAPP_NAME" \
-            --settings \
-              WEBSITE_NGINX_CONFIG_PATH="/home/site/wwwroot/nginx.conf" \
-              WEBSITES_PORT="8080" \
-              WEBSITE_DOCUMENT_ROOT="/home/site/wwwroot/public" \
-              WEBSITE_RUN_FROM_PACKAGE="0" \
-              WEBSITES_ENABLE_APP_SERVICE_STORAGE="true" \
-              APP_STORAGE="/home/site/storage" \
-              SCM_DO_BUILD_DURING_DEPLOYMENT="false"
-
-      - name: Wait for App Service to settle
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        run: sleep 90
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -144,7 +51,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          cache: npm
 
       - name: Install Node packages
         run: NODE_ENV=development npm ci
@@ -168,6 +75,7 @@ jobs:
             --exclude ".github" \
             --exclude "artifacts" \
             --exclude "node_modules" \
+            --exclude "mobile-faturamento/node_modules" \
             --exclude ".env" \
             --exclude "storage/logs" \
             --exclude "vendor/bin"
@@ -176,25 +84,11 @@ jobs:
           touch artifacts/staging/public/storage/.gitkeep
           (cd artifacts/staging && zip -r ../app.zip .)
 
-      - name: Deploy package (Zip Deploy)
-        run: |
-          max_attempts=5
-          delay=20
-          for attempt in $(seq 1 $max_attempts); do
-            echo "Deploy attempt $attempt of $max_attempts"
-            if az webapp deploy \
-              --resource-group "$AZURE_RESOURCE_GROUP" \
-              --name "$AZURE_WEBAPP_NAME" \
-              --type zip \
-              --src-path artifacts/app.zip; then
-              echo "Deploy succeeded"
-              exit 0
-            fi
-            if [ "$attempt" -lt "$max_attempts" ]; then
-              echo "Deploy failed. Waiting ${delay}s before retry..."
-              sleep "$delay"
-              delay=$((delay * 2))
-            fi
-          done
-          echo "Deploy failed after $max_attempts attempts."
-          exit 1
+      - name: Deploy to Azure Web App
+        id: deploy
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: artifacts/app.zip
+          type: zip
