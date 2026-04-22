@@ -48,9 +48,16 @@ No novo `App Service` Linux:
 1. Em `Configuration -> Application settings`, adicionar:
 
 - `APP_ENV=production`
+- `APP_NAME=PDV`
 - `APP_DEBUG=false`
 - `APP_URL=https://SEU-APP.azurewebsites.net`
 - `APP_KEY=base64:...`
+- `APP_TIMEZONE=America/Sao_Paulo`
+- `DB_TIMEZONE=-03:00`
+- `APP_LOCALE=pt_BR`
+- `APP_FALLBACK_LOCALE=en`
+- `APP_FAKER_LOCALE=en_US`
+- `APP_MAINTENANCE_DRIVER=file`
 - `APP_STORAGE=/home/site/storage`
 - `DB_CONNECTION=mysql`
 - `DB_HOST=...`
@@ -58,11 +65,19 @@ No novo `App Service` Linux:
 - `DB_DATABASE=...`
 - `DB_USERNAME=...`
 - `DB_PASSWORD=...`
-- `LOG_CHANNEL=single`
+- `LOG_CHANNEL=stack`
+- `LOG_STACK=single`
 - `LOG_LEVEL=debug`
 - `SESSION_DRIVER=file`
 - `CACHE_STORE=file`
 - `QUEUE_CONNECTION=sync`
+- `BROADCAST_CONNECTION=log`
+- `FILESYSTEM_DISK=local`
+- `SESSION_LIFETIME=120`
+- `SESSION_ENCRYPT=false`
+- `SESSION_PATH=/`
+- `SESSION_DOMAIN=`
+- `SESSION_SECURE_COOKIE=true`
 - `WEBSITES_PORT=8080`
 - `WEBSITE_DOCUMENT_ROOT=/home/site/wwwroot/public`
 - `WEBSITE_RUN_FROM_PACKAGE=0`
@@ -70,6 +85,12 @@ No novo `App Service` Linux:
 - `WEBSITE_NGINX_CONFIG_PATH=/home/site/wwwroot/nginx.conf`
 - `SCM_DO_BUILD_DURING_DEPLOYMENT=false`
 - `WEBSITE_WEBDEPLOY_USE_SCM=true`
+
+Se voce ainda nao for configurar SMTP agora, adicione tambem:
+
+- `MAIL_MAILER=log`
+- `MAIL_FROM_ADDRESS=cleriodias@gmail.com`
+- `MAIL_FROM_NAME=PDV`
 
 2. Em `Configuration -> General settings`, confirmar que o runtime e:
 
