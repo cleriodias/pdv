@@ -23,17 +23,7 @@ devem ser feitas manualmente no portal da Azure no novo ambiente.
 
 Se o novo projeto apontar para o mesmo banco do `PEC83`, os dois sistemas continuam compartilhando dados e migracoes.
 
-## 3. Variable do repositorio GitHub
-
-Em `GitHub -> Settings -> Secrets and variables -> Actions -> Variables`, criar:
-
-- `AZURE_WEBAPP_NAME`
-
-Exemplo:
-
-- `AZURE_WEBAPP_NAME=pdv-padaria-de-verdade`
-
-## 4. Secret do repositorio GitHub
+## 3. Secret do repositorio GitHub
 
 Em `GitHub -> Settings -> Secrets and variables -> Actions -> Secrets`, criar:
 
@@ -41,7 +31,9 @@ Em `GitHub -> Settings -> Secrets and variables -> Actions -> Secrets`, criar:
 
 Esse secret deve receber o conteudo inteiro do arquivo de Publish Profile baixado do novo Web App.
 
-## 5. Passos na Azure
+O workflow atual deste projeto ja usa o nome fixo do Web App `pdv`, entao nao precisa criar `AZURE_WEBAPP_NAME` como variable para este repositorio.
+
+## 4. Passos na Azure
 
 No novo `App Service` Linux:
 
@@ -107,14 +99,14 @@ bash /home/site/wwwroot/start.sh
 
 5. Em `Overview`, baixar o `Publish Profile`.
 
-## 6. Fluxo de publicacao
+## 5. Fluxo de publicacao
 
 1. Inicializar o Git local.
 2. Conectar ao novo repositorio remoto.
 3. Subir a branch `main`.
 4. Executar o workflow `Deploy to Azure Web App`.
 
-## 7. Comandos locais
+## 6. Comandos locais
 
 ```powershell
 git init -b main
@@ -124,7 +116,7 @@ git commit -m "Estrutura inicial do PDV para deploy Azure"
 git push -u origin main
 ```
 
-## 8. Observacoes
+## 7. Observacoes
 
 - O workflow usa `/.github/workflows/deploy.yml`.
 - O startup do Laravel/Nginx usa `start.sh`.

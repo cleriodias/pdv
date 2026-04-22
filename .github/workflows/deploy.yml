@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 env:
-  AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
+  AZURE_WEBAPP_NAME: pdv
 
 jobs:
   build-and-deploy:
@@ -22,12 +22,8 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Validate deployment target
-        run: |
-          if [ -z "$AZURE_WEBAPP_NAME" ]; then
-            echo "Configure a repository variable AZURE_WEBAPP_NAME com o nome do novo Web App."
-            exit 1
-          fi
+      - name: Show deployment target
+        run: echo "Deploy target: $AZURE_WEBAPP_NAME"
 
       - name: Validate publish profile
         env:
