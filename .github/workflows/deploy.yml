@@ -35,6 +35,14 @@ jobs:
             exit 1
           fi
 
+      - name: Validate Azure nginx config
+        run: |
+          if [ ! -f default ]; then
+            echo "Arquivo 'default' nao encontrado na raiz do projeto."
+            echo "O Azure App Service PHP usa esse arquivo para apontar o Nginx para /public."
+            exit 1
+          fi
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:

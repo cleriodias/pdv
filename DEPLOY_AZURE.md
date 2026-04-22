@@ -15,6 +15,8 @@ Configuracoes da Azure como:
 
 devem ser feitas manualmente no portal da Azure no novo ambiente.
 
+O App Service PHP/Linux do Azure usa Nginx e, para Laravel, o arquivo importante no repositiorio e `default` na raiz do projeto. Ele precisa subir junto com o deploy.
+
 ## 2. Criar recursos novos
 
 - Novo repositorio GitHub
@@ -71,10 +73,8 @@ No novo `App Service` Linux:
 - `SESSION_DOMAIN=`
 - `SESSION_SECURE_COOKIE=true`
 - `WEBSITES_PORT=8080`
-- `WEBSITE_DOCUMENT_ROOT=/home/site/wwwroot/public`
 - `WEBSITE_RUN_FROM_PACKAGE=0`
 - `WEBSITES_ENABLE_APP_SERVICE_STORAGE=true`
-- `WEBSITE_NGINX_CONFIG_PATH=/home/site/wwwroot/nginx.conf`
 - `SCM_DO_BUILD_DURING_DEPLOYMENT=false`
 - `WEBSITE_WEBDEPLOY_USE_SCM=true`
 
@@ -92,7 +92,7 @@ Se voce ainda nao for configurar SMTP agora, adicione tambem:
 3. Em `Configuration -> General settings -> Startup Command`, definir:
 
 ```bash
-bash /home/site/wwwroot/start.sh
+cp /home/site/wwwroot/default /etc/nginx/sites-available/default && service nginx reload
 ```
 
 4. Salvar as configuracoes e reiniciar o App Service.
@@ -119,6 +119,7 @@ git push -u origin main
 ## 7. Observacoes
 
 - O workflow usa `/.github/workflows/deploy.yml`.
-- O startup do Laravel/Nginx usa `start.sh`.
+- O Azure precisa do arquivo `default` versionado na raiz do projeto para servir o Laravel a partir de `/public`.
+- Se voce preferir manter o `Startup Command` apontando para `start.sh`, este repositorio tambem aplica a mesma troca por script.
 - Arquivos sensiveis locais como `.env`, `.sql`, `.pfx` e `bkp/` nao devem ir para o Git.
 - Se o deploy falhar no download do Publish Profile em app Linux, confirme primeiro `WEBSITE_WEBDEPLOY_USE_SCM=true`, salve, reinicie o app e baixe o perfil novamente.

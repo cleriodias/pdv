@@ -1,0 +1,27 @@
+# Azure App Service PHP container site config for Laravel.
+server {
+    listen 8080;
+    listen [::]:8080;
+    server_name _;
+
+    root /home/site/wwwroot/public;
+    index index.php index.html index.htm hostingstart.html;
+
+    access_log /dev/stdout;
+    error_log /dev/stderr warn;
+
+    add_header X-App-Custom-Nginx "true" always;
+
+    location / {
+        try_files $uri $uri/ /index.php?$args;
+    }
+
+    location ~ [^/]\.php(/|$) {
+        fastcgi_split_path_info ^(.+?\.php)(/.*)$;
+        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_index index.php;
+        include /etc/nginx/fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
+    }
+}
